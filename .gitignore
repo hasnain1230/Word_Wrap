@@ -53,3 +53,7 @@ dkms.conf
 
 # MacOS System Files
 .DS_Store
+
+# Remove IDE Files
+.idea
+src/.idea

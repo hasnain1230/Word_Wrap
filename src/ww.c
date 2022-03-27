@@ -5,8 +5,14 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <ctype.h>
 
 #define BUFFERSIZE 64
+
+struct wrappedString {
+    char *string;
+    size_t size;
+};
 
 char checkArgs(int argc, char **argv) {
 
@@ -69,58 +75,98 @@ char* writePathName(char* dir, char* de){
     return newString;
 }
 
-void printToFile(char *wrappedString, int stringSize, int fd, char mode) {
+void printToFile(struct wrappedString *ws, int fd, char mode) {
     //method probably gonna be tweaked bc of readFile change 
 
     if(mode == 'f' || mode == 'e'){ //if there is no present filename or second arg is file then print out to stdout
-        for (int x = 0; x < stringSize; x++) {
-            printf("%c", wrappedString[x]);
+        for (int x = 0; x < ws->size; x++) {
+            printf("%c", ws->string[x]);
         }
         printf("\n");
     }else if (mode =='d'){//if second arg is directory write to wrap. files
-        write(fd, wrappedString , stringSize);
+        write(fd, ws->string , ws->size);
         write(fd, "\n", 1); 
     }
 
 }
 
-void readFile(int fd, int colSize, int wfd, char mode) { 
-    // will change 
-    //needs to add what will happen if there is no second arg
+void checkIfMemoryAllocationFailed(void * ptr) {
+    if (ptr == NULL) {
+        perror("Memory allocation failed! Exiting!");
+        exit(2); // Exit code zero is for if the word is larger than the column width
+    }
+}
+
+int wrapFile(int fd, size_t colSize, int wfd, char mode) {
+    int status = 0;
 
     char buffer[BUFFERSIZE];
 
     ssize_t numBytesRead;
-    char *wrappedString = calloc(sizeof(char), colSize);
-    size_t wrappedStringSize = 0;
-    // wrappedString = [101 46 10 84 104 97 116 32 32 32 32 32 32 32 32 32 32 32 32 32 105 115 10 103 111 111 100 46]
-    /*
-     *
-     */
-    while ((numBytesRead = read(fd, buffer, BUFFERSIZE)) > 0) {
-        
-        for (int x = 0; x < numBytesRead; x++) {
-            if (buffer[x] != ' ') {
-                wrappedString[wrappedStringSize++] = buffer[x];
-            } else if (wrappedStringSize == 0 && buffer[x] == 32) {
-                continue;
-            } else if (buffer[x] == 32 && wrappedString[wrappedStringSize - 1] != 32) {
-                wrappedString[wrappedStringSize++] = buffer[x];
-            }
+    struct wrappedString ws;
+    ws.string = calloc(colSize, sizeof(colSize));
+    checkIfMemoryAllocationFailed(ws.string);
+    ws.size = 0;
 
-            if (wrappedStringSize == colSize || x + 1 == numBytesRead) {
-                if(mode == 'f'){
-                    printToFile(wrappedString, wrappedStringSize, wfd, 'f');
-                }else if (mode =='d'){
-                    printToFile(wrappedString, wrappedStringSize, wfd, 'd');
+    char *currentWord = NULL;
+    int wordSize = 0, newLineCount = 0;
+
+    while ((numBytesRead = read(fd, buffer, BUFFERSIZE)) > 0) {
+        for (int x = 0; x < numBytesRead; x++) {
+            if (!isspace(buffer[x])) {
+                wordSize++;
+
+                currentWord = realloc(currentWord, wordSize + 1);
+
+                checkIfMemoryAllocationFailed(currentWord);
+
+                currentWord[wordSize - 1] = buffer[x];
+                currentWord[wordSize] = '\0';
+
+            } else if (buffer[x] == ' ' || buffer[x] == '\n') {
+                if (wordSize > colSize) {
+                    status = 1;
                 }
-                
-                memset(wrappedString, 0, wrappedStringSize);
-                wrappedStringSize = 0;
+                if (wordSize > 0) {
+                    if (ws.size + wordSize + 1 < colSize) {
+                        if (ws.size > 0) {
+                            ws.string[ws.size] = ' ';
+                        }
+                        ws.string = strcat(ws.string, currentWord);
+
+                        if (ws.size == 0) {
+                            ws.size += wordSize;
+                        } else {
+                            ws.size += wordSize + 1;
+                        }
+
+                    } else {
+                        if(mode == 'f'){
+                            printToFile(&ws, wfd, 'f');
+                        }else if (mode =='d'){
+                            printToFile(&ws, wfd, 'd');
+                        }
+                        ws.string = memset(ws.string, 0, colSize);
+                        ws.string = memcpy(ws.string, currentWord, wordSize);
+                        ws.size = wordSize;
+                    }
+
+                    currentWord = memset(currentWord, 0, wordSize);
+                    wordSize = 0;
+                }
             }
         }
     }
-    close(fd);
+    if(mode == 'f'){
+        printToFile(&ws, wfd, 'f');
+    }else if (mode =='d'){
+        printToFile(&ws, wfd, 'd');
+    }
+
+    free(ws.string);
+    free(currentWord);
+
+    return status;
 }
 
 void wrapDirectory(DIR *dir, char* dirName, int colSize){
@@ -152,7 +198,7 @@ void wrapDirectory(DIR *dir, char* dirName, int colSize){
             char *wpath = writePathName(dirName, de->d_name);    
             int wfd = open(wpath, O_WRONLY|O_CREAT|O_APPEND|O_TRUNC,S_IRWXU); 
 
-            readFile(open(rpath, O_RDONLY), colSize, wfd, 'd');
+            wrapFile(open(rpath, O_RDONLY), colSize, wfd, 'd');
             free(wpath);
             
         }
@@ -180,7 +226,7 @@ int main(int argc, char **argv) {
     //this is just an if on how ww will execute depending on the type of argument
     char mode = checkArgs(argc, argv);
     if (mode == 'f'){
-        readFile(open(argv[2], O_RDONLY), atoi(argv[1]),0, 'f');
+        wrapFile(open(argv[2], O_RDONLY), atoi(argv[1]),0, 'f');
     }else if (mode == 'd'){
         //printDirEntry(opendir(argv[2]));
         wrapDirectory(opendir(argv[2]), argv[2], atoi(argv[1]));

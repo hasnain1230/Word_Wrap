@@ -27,7 +27,7 @@ char checkArgs(int argc, char **argv) {
     if(atoi(argv[1])<1){//if argv is negative
         perror("Column size argument should be a positive integer! Please check your input again!");
         exit(1);
-    }
+    } 
 
     if(argc==3){ //if there are 2 args
         stat(argv[2], &sb);
@@ -35,8 +35,8 @@ char checkArgs(int argc, char **argv) {
             return 'f'; //f for file
         }else if (S_ISDIR(sb.st_mode)){ //second arg is a directory
             return 'd'; //d for directory
-        }else{
-            perror("Second argument should be a regular file or a directory! Please check your input!");
+        }else{ //checks if file or directory exists
+            perror("Second argument should be an existing regular file or a directory! Please check your input!");
             exit(1);
         }
     }else if(argc<3){ //if there is only one arg
@@ -45,8 +45,6 @@ char checkArgs(int argc, char **argv) {
 
     perror("How did you even get here?");
     exit(1); //if it reaches here for some reason exit
-
-    // TODO: Check more stuffs
 }
 
 char* readPathName(char* dir, char* de){ //function that creates pathname so i can go through files in dir
@@ -145,6 +143,8 @@ int wrapFile(int fd, size_t colSize, int wfd, char mode) {
                             printToFile(&ws, wfd, 'f');
                         }else if (mode =='d'){
                             printToFile(&ws, wfd, 'd');
+                        }else if (mode =='e'){
+                            printToFile(&ws, wfd, 'e');
                         }
                         ws.string = memset(ws.string, 0, colSize);
                         ws.string = memcpy(ws.string, currentWord, wordSize);
@@ -161,19 +161,23 @@ int wrapFile(int fd, size_t colSize, int wfd, char mode) {
         printToFile(&ws, wfd, 'f');
     }else if (mode =='d'){
         printToFile(&ws, wfd, 'd');
+    }else if (mode =='e'){
+        printToFile(&ws, wfd, 'e');
     }
 
     free(ws.string);
     free(currentWord);
+    close(fd);
 
     return status;
 }
 
-void wrapDirectory(DIR *dir, char* dirName, int colSize){
+int wrapDirectory(DIR *dir, char* dirName, int colSize){
 
     struct dirent *de;
     struct stat sb;
     de = readdir(dir);
+    int status = 0; //this is put here so we know to return 1 or not if one of the files contains a word size larger than colsize
 
     while (de!=NULL) { //while have not read last entry
     
@@ -197,8 +201,12 @@ void wrapDirectory(DIR *dir, char* dirName, int colSize){
             //get path for new wrap. file in directory and open them
             char *wpath = writePathName(dirName, de->d_name);    
             int wfd = open(wpath, O_WRONLY|O_CREAT|O_APPEND|O_TRUNC,S_IRWXU); 
-
-            wrapFile(open(rpath, O_RDONLY), colSize, wfd, 'd');
+            
+            //wraps file and if file contains a word larger than colsize then we return 1
+            int tempstatus = wrapFile(open(rpath, O_RDONLY), colSize, wfd, 'd');
+            if(tempstatus==1){
+                status = 1;
+            }
             free(wpath);
             
         }
@@ -207,6 +215,8 @@ void wrapDirectory(DIR *dir, char* dirName, int colSize){
 
     }
     closedir(dir); //close dir
+    
+    return status;
 
 }
 
@@ -226,22 +236,15 @@ int main(int argc, char **argv) {
     //this is just an if on how ww will execute depending on the type of argument
     char mode = checkArgs(argc, argv);
     if (mode == 'f'){
-        wrapFile(open(argv[2], O_RDONLY), atoi(argv[1]),0, 'f');
+        int wfd = open("/dev/stdout", O_WRONLY|O_APPEND|O_TRUNC);
+        int status = wrapFile(open(argv[2], O_RDONLY), atoi(argv[1]),wfd, 'f');
+        printf("%d\n", status);
+        return 0;
     }else if (mode == 'd'){
         //printDirEntry(opendir(argv[2]));
-        wrapDirectory(opendir(argv[2]), argv[2], atoi(argv[1]));
+        return wrapDirectory(opendir(argv[2]), argv[2], atoi(argv[1]));
     }else if (mode =='e'){
-        puts("owo");
-        //uhhh idk how to do this ngl we'll tweak the code to adjust for this input later
+        int wfd = open("/dev/stdout", O_WRONLY|O_APPEND|O_TRUNC);
+        return wrapFile(open("/dev/stdin", O_RDONLY), atoi(argv[1]),wfd, 'e');
     }
-    
-	return 0;
 }
-
-/*
- * [lorem ispum menny sucks]
- * Size 8 -> [lorem is]
- *
- *
- *
- */

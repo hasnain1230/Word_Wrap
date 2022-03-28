@@ -1,7 +1,7 @@
 # Authors
 
  - Carolette Saguil (cas699)
- - Hasnain Ali (insert NetID)
+ - Hasnain Ali (ha430)
 
 # Test Plan
 ## How We Determined Program was Correct

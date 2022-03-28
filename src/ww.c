@@ -250,10 +250,10 @@ int main(int argc, char **argv) {
     if (mode == 'f'){
         int wfd = open("/dev/stdout", O_WRONLY|O_APPEND|O_TRUNC);
         return wrapFile(open(argv[2], O_RDONLY), atoi(argv[1]),wfd);
-    }else if (mode == 'd'){
+    } else if (mode == 'd'){
         //printDirEntry(opendir(argv[2]));
         return wrapDirectory(opendir(argv[2]), argv[2], atoi(argv[1]));
-    }else if (mode =='e'){
+    } else if (mode =='e'){
         int wfd = open("/dev/stdout", O_WRONLY|O_APPEND|O_TRUNC);
         return wrapFile(open("/dev/stdin", O_RDONLY), atoi(argv[1]),wfd);
     }

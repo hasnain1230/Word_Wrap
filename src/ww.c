@@ -14,6 +14,13 @@ struct wrappedString {
     size_t size;
 };
 
+void checkWriteSuccess(ssize_t writeValue) {
+    if (writeValue == -1) {
+        perror("Write failed!");
+        exit(2);
+    }
+}
+
 char checkArgs(int argc, char **argv) {
 
     struct stat sb;
@@ -102,13 +109,13 @@ int wrapFile(int fd, size_t colSize, int wfd) {
 
                 if (consecutiveNewLines == 2) {
                     if (ws.size > 0) {
-                        write(wfd, ws.string , ws.size);
-                        write(wfd, "\n", 1);
+                        checkWriteSuccess(write(wfd, ws.string , ws.size));
+                        checkWriteSuccess(write(wfd, "\n", 1));
                         ws.string = memset(ws.string, 0, colSize);
                         ws.size = 0;
                     }
 
-                    write(wfd, "\n", 1);
+                    checkWriteSuccess(write(wfd, "\n", 1));
                 }
             }
 
@@ -128,14 +135,14 @@ int wrapFile(int fd, size_t colSize, int wfd) {
                     status = 1;
 
                     if (ws.size > 0) {
-                        write(wfd, ws.string , ws.size);
-                        write(wfd, "\n", 1);
+                        checkWriteSuccess(write(wfd, ws.string , ws.size));
+                        checkWriteSuccess(write(wfd, "\n", 1));
                         ws.string = memset(ws.string, 0, colSize);
                         ws.size = 0;
                     }
 
-                    write(wfd, currentWord , wordSize);
-                    write(wfd, "\n", 1);
+                    checkWriteSuccess(write(wfd, currentWord , wordSize));
+                    checkWriteSuccess(write(wfd, "\n", 1));
                     currentWord = memset(currentWord, 0, wordSize);
                     wordSize = 0;
                 }
@@ -155,8 +162,8 @@ int wrapFile(int fd, size_t colSize, int wfd) {
                         }
 
                     } else {
-                        write(wfd, ws.string , ws.size);
-                        write(wfd, "\n", 1);
+                        checkWriteSuccess(write(wfd, ws.string , ws.size));
+                        checkWriteSuccess(write(wfd, "\n", 1));
 
                         ws.string = memset(ws.string, 0, colSize);
                         ws.string = memcpy(ws.string, currentWord, wordSize);
@@ -171,10 +178,10 @@ int wrapFile(int fd, size_t colSize, int wfd) {
     }
 
     if (status == 1){
-        write(wfd, ws.string , ws.size);
+        checkWriteSuccess(write(wfd, ws.string , ws.size));
     }else{
-        write(wfd, ws.string , ws.size);
-        write(wfd, "\n", 1);
+        checkWriteSuccess(write(wfd, ws.string , ws.size));
+        checkWriteSuccess(write(wfd, "\n", 1));
     }
 
     free(ws.string);

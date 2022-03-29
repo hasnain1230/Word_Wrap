@@ -18,3 +18,4 @@ $(TARGET).o: $(TARGET).c
 
 clean:
 	rm -rfv $(TARGET) *.o *.a *.dylib *.dSYM
+	rm -rfv test_files/wrap.*.txt

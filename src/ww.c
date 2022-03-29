@@ -21,6 +21,13 @@ void checkWriteSuccess(ssize_t writeValue) {
     }
 }
 
+void checkIfMemoryAllocationFailed(void * ptr) {
+    if (ptr == NULL) {
+        perror("Memory allocation failed! Exiting!");
+        exit(2); // Exit code zero is for if the word is larger than the column width
+    }
+}
+
 char checkArgs(int argc, char **argv) {
 
     struct stat sb;
@@ -32,7 +39,7 @@ char checkArgs(int argc, char **argv) {
 
     //do we need to check is argv[1] is an integer as well or is that assumed?
     if(atoi(argv[1])<1){//if argv is negative
-        perror("Column size argument should be a positive integer! Please check your input again!");
+        perror("Column size argument should be a positive integer greater than zero! Please check your input again!");
         exit(1);
     } 
 
@@ -57,6 +64,7 @@ char checkArgs(int argc, char **argv) {
 char* readPathName(char* dir, char* de){ //function that creates pathname so i can go through files in dir
     int sizeOfString = strlen(dir) + strlen(de) + 2; //add 2 bc terminator and backslash
     char* newString = malloc(sizeOfString*sizeof(char)); // allocate mem
+    checkIfMemoryAllocationFailed(newString);
 
     //make string by strcat
     newString[0]='\0';
@@ -70,6 +78,7 @@ char* writePathName(char* dir, char* de){
     char *prefix = "wrap.";
     int sizeOfString = strlen(dir) + strlen(de) + strlen(prefix) + 2; //add 2 bc terminator and backslash
     char* newString = malloc(sizeOfString*sizeof(char)); // allocate mem
+    checkIfMemoryAllocationFailed(newString);
 
     //make string by strcat
     newString[0]='\0';
@@ -78,13 +87,6 @@ char* writePathName(char* dir, char* de){
     strcat(newString,prefix);
     strcat(newString, de);
     return newString;
-}
-
-void checkIfMemoryAllocationFailed(void * ptr) {
-    if (ptr == NULL) {
-        perror("Memory allocation failed! Exiting!");
-        exit(2); // Exit code zero is for if the word is larger than the column width
-    }
 }
 
 int wrapFile(int fd, size_t colSize, int wfd) {
@@ -177,9 +179,9 @@ int wrapFile(int fd, size_t colSize, int wfd) {
         }
     }
 
-    if (status == 1){
+    if (status == 1) {
         checkWriteSuccess(write(wfd, ws.string , ws.size));
-    }else{
+    } else{
         checkWriteSuccess(write(wfd, ws.string , ws.size));
         checkWriteSuccess(write(wfd, "\n", 1));
     }
@@ -219,7 +221,7 @@ int wrapDirectory(DIR *dir, char* dirName, int colSize){
 
             //get path for new wrap. file in directory and open them
             char *wpath = writePathName(dirName, de->d_name);    
-            int wfd = open(wpath, O_WRONLY|O_CREAT|O_APPEND|O_TRUNC,S_IRWXU); 
+            int wfd = open(wpath, O_WRONLY|O_CREAT|O_APPEND|O_TRUNC, S_IRWXU);
             
             //wraps file and if file contains a word larger than colsize then we return 1
             int tempstatus = wrapFile(open(rpath, O_RDONLY), colSize, wfd);

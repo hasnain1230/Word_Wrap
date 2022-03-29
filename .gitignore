@@ -60,3 +60,6 @@ src/.idea
 src/test_files
 src/ww.o
 src/ww
+
+# Remove Code Tester Directories
+AutoCodeTester/

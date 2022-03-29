@@ -89,42 +89,50 @@ char* writePathName(char* dir, char* de){
     return newString;
 }
 
-int wrapFile(int fd, size_t colSize, int wfd) {
-    int status = 0;
+/*
+ * Wrap file will take an input file descriptor, a column size, and a file descriptor to write to (in most cases, it will
+ * just be stdout, but any file does work). We tokenize each word in the input file, see if that word with the appropriate white
+ * whitespace will fit on the current line given the `colSize`. If it does not, it will go to the next line and print the appropriate word
+ * on that line.
+ */
 
-    char buffer[BUFFERSIZE];
+int wrapFile(int fd, size_t colSize, int wfd) { // The function that actually wraps the file contents
+    int status = 0; // Status indicates whether or not the word size is larger than the colSize. In that case, status becomes 1. By default, it is zero.
 
+    char buffer[BUFFERSIZE]; // By default, it is 64 size.
+
+    // String and wrapping setup.
     ssize_t numBytesRead;
     struct wrappedString ws;
     ws.string = calloc(colSize, sizeof(colSize));
-    checkIfMemoryAllocationFailed(ws.string);
+    checkIfMemoryAllocationFailed(ws.string); // This function checks for malloc failures.
     ws.size = 0;
 
     char *currentWord = NULL;
     size_t wordSize = 0;
     int consecutiveNewLines = 0;
 
-    while ((numBytesRead = read(fd, buffer, BUFFERSIZE)) > 0) {
+    while ((numBytesRead = read(fd, buffer, BUFFERSIZE)) > 0) { // We start reading the file here/
         for (int x = 0; x < numBytesRead; x++) {
             if (buffer[x] == '\n') {
                 consecutiveNewLines++;
 
-                if (consecutiveNewLines == 2) {
-                    if (ws.size > 0) {
+                if (consecutiveNewLines == 2) { // If we see two new lines in a row, that means we are at a paragraph and need to print out the paragraph.
+                    if (ws.size > 0) { // This means we need to flush the current wrapped string before we can continue.
                         checkWriteSuccess(write(wfd, ws.string , ws.size));
                         checkWriteSuccess(write(wfd, "\n", 1));
                         ws.string = memset(ws.string, 0, colSize);
                         ws.size = 0;
                     }
 
-                    checkWriteSuccess(write(wfd, "\n", 1));
+                    checkWriteSuccess(write(wfd, "\n", 1)); // Write newline for next paragraph.
                 }
             }
 
-            if (!isspace(buffer[x])) {
+            if (!isspace(buffer[x])) { // This means we are reading a word.
                 wordSize++;
 
-                currentWord = realloc(currentWord, wordSize + 1);
+                currentWord = realloc(currentWord, wordSize + 1); // For the null terminator... And later a space. Hence, we add 1.
 
                 checkIfMemoryAllocationFailed(currentWord);
 
@@ -132,47 +140,47 @@ int wrapFile(int fd, size_t colSize, int wfd) {
                 currentWord[wordSize] = '\0';
 
                 consecutiveNewLines = 0;
-            } else if (buffer[x] == ' ' || buffer[x] == '\n') {
-                if (wordSize + 1 > colSize) {
+            } else if (buffer[x] == ' ' || buffer[x] == '\n') { // This means we are done reading a word and can start the wrapping process.
+                if (wordSize + 1 > colSize) { // If the word is bigger than colSize...
                     status = 1;
 
-                    if (ws.size > 0) {
+                    if (ws.size > 0) { // We may need to flush the current wrapped string before we can deal with the current word.
                         checkWriteSuccess(write(wfd, ws.string , ws.size));
                         checkWriteSuccess(write(wfd, "\n", 1));
                         ws.string = memset(ws.string, 0, colSize);
                         ws.size = 0;
                     }
 
-                    checkWriteSuccess(write(wfd, currentWord , wordSize));
+                    checkWriteSuccess(write(wfd, currentWord , wordSize)); // Print...
                     checkWriteSuccess(write(wfd, "\n", 1));
-                    currentWord = memset(currentWord, 0, wordSize);
-                    wordSize = 0;
+                    currentWord = memset(currentWord, 0, wordSize); // and reset
+                    wordSize = 0; // Continue from here.
                 }
 
 
-                if (wordSize > 0) { // What if we focused on here?
-                    if (ws.size + wordSize + 1 <= colSize) {
+                if (wordSize > 0) {
+                    if (ws.size + wordSize + 1 <= colSize) { // Check to see if the current word will fit inside the wrapped string. If so, concat it into wrapped string.
                         if (ws.size > 0) {
-                            ws.string[ws.size] = ' ';
+                            ws.string[ws.size] = ' '; // Add a space for the word
                         }
                         ws.string = strcat(ws.string, currentWord);
 
                         if (ws.size == 0) {
-                            ws.size += wordSize;
+                            ws.size += wordSize; // If wrapped string is empty, the size becomes wordSize.
                         } else {
-                            ws.size += wordSize + 1;
+                            ws.size += wordSize + 1; // Else, wrapped string needs to store the size of the space we added if it's not currently empty.
                         }
 
                     } else {
-                        checkWriteSuccess(write(wfd, ws.string , ws.size));
+                        checkWriteSuccess(write(wfd, ws.string , ws.size)); // Else write string and new line character.
                         checkWriteSuccess(write(wfd, "\n", 1));
 
-                        ws.string = memset(ws.string, 0, colSize);
-                        ws.string = memcpy(ws.string, currentWord, wordSize);
-                        ws.size = wordSize;
+                        ws.string = memset(ws.string, 0, colSize); // Reset everything.
+                        ws.string = memcpy(ws.string, currentWord, wordSize); // Store the next word we just loaded in...
+                        ws.size = wordSize; // Store word size.
                     }
 
-                    currentWord = memset(currentWord, 0, wordSize);
+                    currentWord = memset(currentWord, 0, wordSize); // Reset current word once we get here regardless of what happened above.
                     wordSize = 0;
                 }
             }
@@ -180,17 +188,17 @@ int wrapFile(int fd, size_t colSize, int wfd) {
     }
 
     if (status == 1) {
-        checkWriteSuccess(write(wfd, ws.string , ws.size));
+        checkWriteSuccess(write(wfd, ws.string , ws.size)); // Write the final wrapped string
     } else{
-        checkWriteSuccess(write(wfd, ws.string , ws.size));
+        checkWriteSuccess(write(wfd, ws.string , ws.size)); // Write the final wrapped string, but since status == 1, that means we did not write the new line character.
         checkWriteSuccess(write(wfd, "\n", 1));
     }
 
-    free(ws.string);
+    free(ws.string); // Free memory
     free(currentWord);
     close(fd);
 
-    return status;
+    return status; // Was our process successful once we get here? Status indicates that.
 }
 
 int wrapDirectory(DIR *dir, char* dirName, int colSize){

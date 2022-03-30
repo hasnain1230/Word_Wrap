@@ -187,13 +187,13 @@ int wrapFile(int fd, size_t colSize, int wfd) { // The function that actually wr
         }
     }
 
-    if (ws.size == 0) { // Is the wrappedString size is zero, we are already on a new line. Print a new line and finish.
-        checkWriteSuccess(write(wfd, "\n", 2));
+    if (ws.size == 0) {
+        checkWriteSuccess(write(wfd, ws.string,ws.size)); // Write the final wrapped string and flush it out. Then write two new lines, one to end the final wrapped string, and one for the new paragraph.
+        checkWriteSuccess(write(wfd, "\n", 1));
     } else {
-        checkWriteSuccess(write(wfd, ws.string , ws.size)); // Write the final wrapped string and flush it out. Then write two new lines, one to end the final wrapped string, and one for the new paragraph.
+        checkWriteSuccess(write(wfd, ws.string,ws.size)); // Write the final wrapped string and flush it out. Then write two new lines, one to end the final wrapped string, and one for the new paragraph.
         checkWriteSuccess(write(wfd, "\n\n", 2));
     }
-
 
     free(ws.string); // Free memory
     free(currentWord);

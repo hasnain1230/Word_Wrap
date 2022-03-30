@@ -172,7 +172,7 @@ int wrapFile(int fd, size_t colSize, int wfd) { // The function that actually wr
                         }
 
                     } else {
-                        checkWriteSuccess(write(wfd, ws.string , ws.size)); // Else write string and new line character.
+                        checkWriteSuccess(write(wfd, ws.string, ws.size)); // Else write string and new line character.
                         checkWriteSuccess(write(wfd, "\n", 1));
 
                         ws.string = memset(ws.string, 0, colSize); // Reset everything.
@@ -188,10 +188,10 @@ int wrapFile(int fd, size_t colSize, int wfd) { // The function that actually wr
     }
 
     if (ws.size == 0) {
-        checkWriteSuccess(write(wfd, ws.string,ws.size)); // Write the final wrapped string and flush it out. Then write two new lines, one to end the final wrapped string, and one for the new paragraph.
+        checkWriteSuccess(write(wfd, ws.string, ws.size)); // Write the final wrapped string and flush it out. Then write two new lines, one to end the final wrapped string, and one for the new paragraph.
         checkWriteSuccess(write(wfd, "\n", 1));
     } else {
-        checkWriteSuccess(write(wfd, ws.string,ws.size)); // Write the final wrapped string and flush it out. Then write two new lines, one to end the final wrapped string, and one for the new paragraph.
+        checkWriteSuccess(write(wfd, ws.string, ws.size)); // Write the final wrapped string and flush it out. Then write two new lines, one to end the final wrapped string, and one for the new paragraph.
         checkWriteSuccess(write(wfd, "\n\n", 2));
     }
 
@@ -266,7 +266,7 @@ int main(int argc, char **argv) {
     //this is just an if on how ww will execute depending on the type of argument
     char mode = checkArgs(argc, argv);
     if (mode == 'f'){
-        int wfd = open("/dev/stdout", O_WRONLY|O_APPEND|O_TRUNC);
+        int wfd = open("/dev/stdout", O_WRONLY|O_APPEND|O_TRUNC); // We use the full path names just to be specific and more clear. Hard coding in file descritor 0 or 1 felt weird to us. 
         return wrapFile(open(argv[2], O_RDONLY), atoi(argv[1]),wfd);
     } else if (mode == 'd'){
         //printDirEntry(opendir(argv[2]));

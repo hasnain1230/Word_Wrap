@@ -7,9 +7,8 @@ provide the best reading experience. While you can read the PDF, we recommend yo
 You can also use `grip` by installing `pip3 install --upgrade pip grip` and then `grip <path-to-README.md>`. This will create
 a local server that you can access to view the Markdown file.** <br/><br/>
 
-**While you can use the PDF also included in this write-up, we highly recommend you to use a Markdown editor as the PDF may
-have formatting imperfections. While we did our best to validate it, for the easiest experience, we highly recommend using one
-of the options above.**
+**While you can use the PDF also included here, we highly recommend you to use a Markdown editor as the PDF may
+have formatting imperfections. While we did our best to validate it, for the easiest experience, we highly recommend using one of the options above.**
 
 # Authors
 - Carolette Saguil (cas699)
@@ -91,7 +90,7 @@ Below and throughout this document, we will proceed to prove each of those prope
 what test cases and design properties we used. Through extensive testing and robust code, we have been able to prove each property listed above.
 We will now get into explaining how we were able to prove each property.
 
-### How We Determined Program was Correct
+### How We Determined Our Program Was Correct
 We determined that in order for our code to be correct we needed to be able to: <br/>
 
  - Read from `stdin` and print to `stdout`, if only `columnSize` is given with no other
@@ -104,7 +103,37 @@ file name.
 In order for the wrapped file to be correct it would need to:
 
  - Have lines that are less than the given column width without cutting off words, but placing new words that can't fit, onto a new line by themselves.
- - Make paragraphs when the inputted file has a sequence of at least two newlines characters (`'\n'`)
+ - Make paragraphs when the inputted file has a sequence of at least two newlines characters (`'\n'`). 
+   - **Please Note: At the end of a while, if there are is more are two consecutive new line characters in a row, i.e:
+   there are two new lines at the end of the file rather than one, new line (with no words on it), this program will print two newline characters at the end, rather than one because it is expecting a new paragraph to start.
+   the directions were not clear about this, but we thought it was the best design.**
+     - So, for example:
+     ```
+     here is some test i guess
+     
+     
+     ```
+     
+     - When wrapped, this program is expecting a new paragraph to begin. This was done by design and by choice. We were unsure
+     of what do to in this case and thought this was the best design. So, wrapped with a `colSize` of 100, the above example will look like this:
+     ```
+     here is some test i guess
+     
+     
+     ```
+     - Whereas, if there is only one new line character at the end, only one newline character will be printed at the end like so:
+       - Original Text:
+     ```
+     here is some test i guess
+     
+     ```
+     - Wrapped to `colSize` 100:
+     ```
+     here is some test i guess
+
+     ```
+     - Note how above, there is only one newline. If there are multiple newline characters at the end of the file (more than two),
+     at most, only two will be printed because the program is expecting to start a new paragraph. This was done by design for robustness as the directions in the writeup were not clear about this scenario. <br/><br/>
  - Print a word on a single line when it exceeds the width and finish wrapping, then return `exit code 1`.
 
 **Please Note: If the user does not give `argv[1]` to be `columnSize`,
@@ -257,5 +286,4 @@ Which will clean the project and only leave behind the source code, `ww.c` and t
     - `-Wundef`: Warn if any undefined behavior occurs.
     - `-Wpointer-arith`: Warn if any invalid or risky pointer arithmetic occurs.
     - `-fsanitize=address,undefined`: We include this because this program involves the use of dynamic arrays, 
-  and we want to make sure that our memory is handled as best as we can (to ensure no overflows or leaks occur). We also compile with
-  undefined sanitizer to ensure no undefined behavior occurs. This is for security and behavioral purposes.
+  and we want to make sure that our memory is handled as best as we can (to ensure no overflows or leaks occur). We also compile with undefined sanitizer to ensure no undefined behavior occurs. This is for security and behavioral purposes.

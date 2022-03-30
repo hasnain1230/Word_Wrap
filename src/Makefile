@@ -1,6 +1,7 @@
 TARGET = ww
 CC = gcc
-CFLAGS = -g -std=c99 -Wall -Wvla -Wextra -Wundef -Wshadow -Wpointer-arith -O2 -fsanitize=address,undefined
+CFLAGS = -g -std=c99 -Wall -Werror -Wvla -Wextra -Wundef -Wshadow -Wpointer-arith -O2 -fsanitize=address,undefined
+
 
 OBJ = $(TARGET).o
 
